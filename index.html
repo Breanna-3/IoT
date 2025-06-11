@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Smart Environment Dashboard</title>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-color: #f4f4f4;
+      padding: 30px;
+    }
+
+    h1 {
+      margin-bottom: 5px;
+    }
+
+    .data {
+      font-size: 24px;
+      margin: 10px 0;
+    }
+
+    .buttons {
+      margin-top: 20px;
+    }
+
+    .led-btn {
+      padding: 12px 24px;
+      font-size: 18px;
+      margin: 10px;
+      border: none;
+      border-radius: 5px;
+      color: white;
+      cursor: pointer;
+    }
+
+    .red-on { background-color: crimson; }
+    .red-off { background-color: #555; }
+
+    .blue-on { background-color: dodgerblue; }
+    .blue-off { background-color: #555; }
+
+    .status {
+      margin-top: 20px;
+      font-size: 14px;
+      color: #333;
+    }
+
+    @media (max-width: 500px) {
+      .led-btn { width: 90%; }
+    }
+  </style>
+</head>
+<body>
+  <h1>🌡️ IoT Environment Monitor</h1>
+
+  <div class="data">Temperature: <span id="temp">--</span> °C</div>
+  <div class="data">Humidity: <span id="hum">--</span> %</div>
+
+  <div class="buttons">
+    <button id="redBtn" class="led-btn red-off" onclick="toggleLED('red')">Toggle Red LED</button>
+    <button id="blueBtn" class="led-btn blue-off" onclick="toggleLED('blue')">Toggle Blue LED</button>
+  </div>
+
+  <div class="status" id="status">Connecting to MQTT broker...</div>
+
+  <script>
+    const statusEl = document.getElementById("status");
+    const redBtn = document.getElementById("redBtn");
+    const blueBtn = document.getElementById("blueBtn");
+    const tempEl = document.getElementById("temp");
+    const humEl = document.getElementById("hum");
+
+    let redOn = false;
+    let blueOn = false;
+
+    const client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
+
+    client.on("connect", () => {
+      statusEl.textContent = "✅ Connected to MQTT broker!";
+      client.subscribe("iot/sensordata");
+    });
+
+    client.on("message", (topic, message) => {
+      if (topic === "iot/sensordata") {
+        try {
+          const data = JSON.parse(message.toString());
+          tempEl.textContent = data.temperature.toFixed(1);
+          humEl.textContent = data.humidity.toFixed(1);
+        } catch (e) {
+          console.error("Invalid JSON:", e);
+        }
+      }
+    });
+
+    function toggleLED(color) {
+      const topic = `iot/led/${color}`;
+      if (color === "red") {
+        redOn = !redOn;
+        client.publish(topic, redOn ? "ON" : "OFF");
+        redBtn.className = "led-btn " + (redOn ? "red-on" : "red-off");
+      } else {
+        blueOn = !blueOn;
+        client.publish(topic, blueOn ? "ON" : "OFF");
+        blueBtn.className = "led-btn " + (blueOn ? "blue-on" : "blue-off");
+      }
+    }
+
+    client.on("error", (error) => {
+      statusEl.textContent = "❌ MQTT error: " + error.message;
+    });
+
+    client.on("reconnect", () => {
+      statusEl.textContent = "🔄 Reconnecting to MQTT broker...";
+    });
+  </script>
+</body>
+</html>
