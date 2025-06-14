@@ -2,118 +2,149 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Smart Environment Dashboard</title>
+  <title>ESP32 Sensor Dashboard</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background-color: #f4f4f4;
-      padding: 30px;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f8fafc;
+      margin: 0;
+      padding: 0;
     }
-
+    .dashboard {
+      max-width: 450px;
+      margin: 40px auto;
+      background: #fff;
+      border-radius: 1.2rem;
+      box-shadow: 0 6px 32px #0001;
+      padding: 2.2rem 2rem 2rem 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
     h1 {
-      margin-bottom: 5px;
+      margin-top: 0;
+      margin-bottom: 2rem;
+      color: #1565c0;
+      letter-spacing: 1px;
     }
-
-    .data {
-      font-size: 24px;
-      margin: 10px 0;
+    .reading {
+      font-size: 2.1rem;
+      margin: .7rem 0;
+      font-weight: 500;
+      color: #2b3440;
+      display: flex;
+      align-items: center;
+      gap: .5em;
     }
-
-    .buttons {
-      margin-top: 20px;
+    .label {
+      color: #789;
+      font-size: 1.08rem;
+      font-weight: 400;
+      margin-right: 0.7em;
+      letter-spacing: 1px;
     }
-
-    .led-btn {
-      padding: 12px 24px;
-      font-size: 18px;
-      margin: 10px;
+    .card {
+      background: #f3f6fa;
+      border-radius: 1rem;
+      padding: 1.2em 2em;
+      margin-bottom: 1.2em;
+      box-shadow: 0 1px 8px #0002;
+      width: 100%;
+      max-width: 340px;
+      text-align: center;
+      transition: box-shadow .15s;
+    }
+    .card:hover { box-shadow: 0 2px 16px #1976d22a; }
+    .btn {
+      margin: 0.5em 1em 0.5em 1em;
+      padding: .95em 2.3em;
+      font-size: 1.1rem;
+      border-radius: 2em;
       border: none;
-      border-radius: 5px;
+      background: #1976d2;
       color: white;
       cursor: pointer;
+      box-shadow: 0 2px 8px #1976d242;
+      font-weight: 500;
+      transition: background .15s;
     }
-
-    .red-on { background-color: crimson; }
-    .red-off { background-color: #555; }
-
-    .blue-on { background-color: dodgerblue; }
-    .blue-off { background-color: #555; }
-
+    .btn.active { background: #d32f2f; }
     .status {
-      margin-top: 20px;
-      font-size: 14px;
-      color: #333;
+      margin-top: 1.2em;
+      font-size: 1rem;
+      color: #028845;
+      font-weight: 500;
     }
-
-    @media (max-width: 500px) {
-      .led-btn { width: 90%; }
+    .controls {
+      display: flex;
+      gap: 1.5em;
+    }
+    @media (max-width: 600px) {
+      .dashboard { max-width: 98vw; padding: 1.1rem .6rem; }
+      .card { padding: 1em .8em; }
+      .controls { flex-direction: column; gap: 0.8em; }
+      .btn { width: 100%; }
     }
   </style>
 </head>
 <body>
-  <h1>🌡️ IoT Environment Monitor</h1>
-
-  <div class="data">Temperature: <span id="temp">--</span> °C</div>
-  <div class="data">Humidity: <span id="hum">--</span> %</div>
-
-  <div class="buttons">
-    <button id="redBtn" class="led-btn red-off" onclick="toggleLED('red')">Toggle Red LED</button>
-    <button id="blueBtn" class="led-btn blue-off" onclick="toggleLED('blue')">Toggle Blue LED</button>
+  <div class="dashboard">
+    <h1>ESP32 Live Dashboard</h1>
+    <div class="card">
+      <div class="reading"><span class="label">🌡️ Temp</span> <span id="temp">--</span> <span>°C</span></div>
+      <div class="reading"><span class="label">💧 Humidity</span> <span id="hum">--</span> <span>%</span></div>
+      <div class="reading"><span class="label">💓 BPM</span> <span id="bpm">--</span></div>
+    </div>
+    <div class="controls">
+      <button class="btn" id="ledBtn">Toggle LED</button>
+      <button class="btn" id="buzzerBtn">Toggle Buzzer</button>
+    </div>
+    <div class="status" id="status">Connecting to MQTT...</div>
   </div>
-
-  <div class="status" id="status">Connecting to MQTT broker...</div>
-
   <script>
-    const statusEl = document.getElementById("status");
-    const redBtn = document.getElementById("redBtn");
-    const blueBtn = document.getElementById("blueBtn");
-    const tempEl = document.getElementById("temp");
-    const humEl = document.getElementById("hum");
+    // MQTT broker and topics
+    const broker = 'wss://broker.hivemq.com:8884/mqtt';
+    const topicTemp = 'home/esp32/temp';
+    const topicHum  = 'home/esp32/hum';
+    const topicBPM  = 'home/esp32/bpm';
+    const topicLED  = 'home/esp32/led';
+    const topicBUZZ = 'home/esp32/buzzer';
 
-    let redOn = false;
-    let blueOn = false;
+    // Connect to MQTT broker over WebSockets
+    const client = mqtt.connect(broker);
 
-    const client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
-
-    client.on("connect", () => {
-      statusEl.textContent = "✅ Connected to MQTT broker!";
-      client.subscribe("iot/sensordata");
+    client.on('connect', () => {
+      document.getElementById('status').textContent = '🟢 Connected';
+      client.subscribe([topicTemp, topicHum, topicBPM]);
     });
 
-    client.on("message", (topic, message) => {
-      if (topic === "iot/sensordata") {
-        try {
-          const data = JSON.parse(message.toString());
-          tempEl.textContent = data.temperature.toFixed(1);
-          humEl.textContent = data.humidity.toFixed(1);
-        } catch (e) {
-          console.error("Invalid JSON:", e);
-        }
-      }
+    client.on('reconnect', () => {
+      document.getElementById('status').textContent = '🔄 Reconnecting...';
     });
 
-    function toggleLED(color) {
-      const topic = `iot/led/${color}`;
-      if (color === "red") {
-        redOn = !redOn;
-        client.publish(topic, redOn ? "ON" : "OFF");
-        redBtn.className = "led-btn " + (redOn ? "red-on" : "red-off");
-      } else {
-        blueOn = !blueOn;
-        client.publish(topic, blueOn ? "ON" : "OFF");
-        blueBtn.className = "led-btn " + (blueOn ? "blue-on" : "blue-off");
-      }
-    }
-
-    client.on("error", (error) => {
-      statusEl.textContent = "❌ MQTT error: " + error.message;
+    client.on('offline', () => {
+      document.getElementById('status').textContent = '🔴 Disconnected';
     });
 
-    client.on("reconnect", () => {
-      statusEl.textContent = "🔄 Reconnecting to MQTT broker...";
+    client.on('message', (topic, message) => {
+      if (topic === topicTemp)   document.getElementById('temp').textContent = message;
+      if (topic === topicHum)    document.getElementById('hum').textContent  = message;
+      if (topic === topicBPM)    document.getElementById('bpm').textContent  = message;
     });
+
+    // LED toggle button
+    document.getElementById('ledBtn').onclick = function() {
+      client.publish(topicLED, "toggle");
+      this.classList.toggle("active");
+    };
+
+    // Buzzer toggle button
+    document.getElementById('buzzerBtn').onclick = function() {
+      client.publish(topicBUZZ, "toggle");
+      this.classList.toggle("active");
+    };
   </script>
 </body>
 </html>
