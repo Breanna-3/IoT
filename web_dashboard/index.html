@@ -6,18 +6,87 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <style>
-    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f8fafc; margin: 0; padding: 0; }
-    .dashboard { max-width: 450px; margin: 40px auto; background: #fff; border-radius: 1.2rem; box-shadow: 0 6px 32px #0001; padding: 2.2rem 2rem 2rem 2rem; display: flex; flex-direction: column; align-items: center; }
-    h1 { margin-top: 0; margin-bottom: 2rem; color: #1565c0; letter-spacing: 1px; }
-    .reading { font-size: 2.1rem; margin: .7rem 0; font-weight: 500; color: #2b3440; display: flex; align-items: center; gap: .5em; }
-    .label { color: #789; font-size: 1.08rem; font-weight: 400; margin-right: 0.7em; letter-spacing: 1px; }
-    .card { background: #f3f6fa; border-radius: 1rem; padding: 1.2em 2em; margin-bottom: 1.2em; box-shadow: 0 1px 8px #0002; width: 100%; max-width: 340px; text-align: center; transition: box-shadow .15s; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f8fafc;
+      margin: 0;
+      padding: 0;
+    }
+    .dashboard {
+      max-width: 450px;
+      margin: 40px auto;
+      background: #fff;
+      border-radius: 1.2rem;
+      box-shadow: 0 6px 32px #0001;
+      padding: 2.2rem 2rem 2rem 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 {
+      margin-top: 0;
+      margin-bottom: 2rem;
+      color: #1565c0;
+      letter-spacing: 1px;
+    }
+    .reading {
+      font-size: 2.1rem;
+      margin: .7rem 0;
+      font-weight: 500;
+      color: #2b3440;
+      display: flex;
+      align-items: center;
+      gap: .5em;
+    }
+    .label {
+      color: #789;
+      font-size: 1.08rem;
+      font-weight: 400;
+      margin-right: 0.7em;
+      letter-spacing: 1px;
+    }
+    .card {
+      background: #f3f6fa;
+      border-radius: 1rem;
+      padding: 1.2em 2em;
+      margin-bottom: 1.2em;
+      box-shadow: 0 1px 8px #0002;
+      width: 100%;
+      max-width: 340px;
+      text-align: center;
+      transition: box-shadow .15s;
+    }
     .card:hover { box-shadow: 0 2px 16px #1976d22a; }
-    .btn { margin-top: 1.5em; padding: .95em 2.3em; font-size: 1.1rem; border-radius: 2em; border: none; background: #1976d2; color: white; cursor: pointer; box-shadow: 0 2px 8px #1976d242; font-weight: 500; transition: background .15s; }
+    .btn {
+      margin: 0.5em 1em 0.5em 1em;
+      padding: .95em 2.3em;
+      font-size: 1.1rem;
+      border-radius: 2em;
+      border: none;
+      background: #1976d2;
+      color: white;
+      cursor: pointer;
+      box-shadow: 0 2px 8px #1976d242;
+      font-weight: 500;
+      transition: background .15s;
+    }
     .btn.active { background: #d32f2f; }
-    .status { margin-top: 1.2em; font-size: 1rem; color: #028845; font-weight: 500; }
-    .btn-group { display: flex; gap: 1em; }
-    @media (max-width: 600px) { .dashboard { max-width: 98vw; padding: 1.1rem .6rem; } .card { padding: 1em .8em; } }
+    .status {
+      margin-top: 1.2em;
+      font-size: 1rem;
+      color: #028845;
+      font-weight: 500;
+    }
+    .controls {
+      display: flex;
+      gap: 1.5em;
+    }
+    @media (max-width: 600px) {
+      .dashboard { max-width: 98vw; padding: 1.1rem .6rem; }
+      .card { padding: 1em .8em; }
+      .controls { flex-direction: column; gap: 0.8em; }
+      .btn { width: 100%; }
+    }
   </style>
 </head>
 <body>
@@ -28,20 +97,22 @@
       <div class="reading"><span class="label">💧 Humidity</span> <span id="hum">--</span> <span>%</span></div>
       <div class="reading"><span class="label">💓 BPM</span> <span id="bpm">--</span></div>
     </div>
-    <div class="btn-group">
+    <div class="controls">
       <button class="btn" id="ledBtn">Toggle LED</button>
       <button class="btn" id="buzzerBtn">Toggle Buzzer</button>
     </div>
     <div class="status" id="status">Connecting to MQTT...</div>
   </div>
   <script>
+    // MQTT broker and topics
     const broker = 'wss://broker.hivemq.com:8884/mqtt';
     const topicTemp = 'home/esp32/temp';
     const topicHum  = 'home/esp32/hum';
     const topicBPM  = 'home/esp32/bpm';
     const topicLED  = 'home/esp32/led';
-    const topicBuzzer = 'home/esp32/buzzer';
+    const topicBUZZ = 'home/esp32/buzzer';
 
+    // Connect to MQTT broker over WebSockets
     const client = mqtt.connect(broker);
 
     client.on('connect', () => {
@@ -63,12 +134,15 @@
       if (topic === topicBPM)    document.getElementById('bpm').textContent  = message;
     });
 
+    // LED toggle button
     document.getElementById('ledBtn').onclick = function() {
       client.publish(topicLED, "toggle");
       this.classList.toggle("active");
     };
+
+    // Buzzer toggle button
     document.getElementById('buzzerBtn').onclick = function() {
-      client.publish(topicBuzzer, "toggle");
+      client.publish(topicBUZZ, "toggle");
       this.classList.toggle("active");
     };
   </script>
