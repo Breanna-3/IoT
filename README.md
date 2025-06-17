@@ -1,7 +1,6 @@
 # IoT
 
 
-# IoT ESP32 Health Dashboard Project
 
 # IoT Health Monitoring System
 
