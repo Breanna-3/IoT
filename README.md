@@ -21,11 +21,7 @@ This project uses an ESP32 microcontroller to monitor temperature, humidity, and
 - A web dashboard displays live data (temperature, humidity, BPM).
 - The dashboard allows you to toggle the LED and buzzer.
 
-## How to use
-1. Wire the components as shown in the circuit diagram.
-2. Upload the code to the ESP32 using Arduino IDE.
-3. Open the web dashboard in your browser.
-4. View live data and control the actuators.
+
 
 - Humidity: `home/esp32/hum`
 - BPM: `home/esp32/bpm`
