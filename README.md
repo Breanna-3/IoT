@@ -3,37 +3,30 @@
 
 # IoT ESP32 Health Dashboard Project
 
-This repository contains:
-- Arduino code for ESP32 (heart rate, temperature, humidity, MQTT)
-- A web dashboard (HTML/JS)
-- A mobile app (React Native/Expo)
+# IoT Health Monitoring System
 
----
+This project uses an ESP32 microcontroller to monitor temperature, humidity, and heart rate. Data is sent to an MQTT broker and displayed on a web dashboard. The dashboard also allows control of an LED and a buzzer.
 
-## Structure
+## Components
+- ESP32 board
+- DHT22 temperature and humidity sensor
+- Heart rate sensor
+- Red LED
+- Blue LED
+- Buzzer
+- Jumper wires, breadboard
 
-- `/esp32_code/` : Arduino code for ESP32, send sensor data to MQTT
-- `/web_dashboard/` : Web dashboard, open `index.html` in your browser for live data
-- `/esp32-dashboard-app/` : React Native Expo app for mobile (run with Expo CLI)
+## How it works
+- The ESP32 reads sensor data and publishes it to an MQTT broker.
+- A web dashboard displays live data (temperature, humidity, BPM).
+- The dashboard allows you to toggle the LED and buzzer.
 
----
+## How to use
+1. Wire the components as shown in the circuit diagram.
+2. Upload the code to the ESP32 using Arduino IDE.
+3. Open the web dashboard in your browser.
+4. View live data and control the actuators.
 
-## How to Use
-
-1. **Upload Arduino code:** Flash `esp32_code/temp_monitor.ino` to your ESP32 via Arduino IDE.
-2. **Run Web Dashboard:** Open `web_dashboard/index.html` in your browser.
-3. **Run Mobile App:**  
-   - `cd esp32-dashboard-app`
-   - `npm install`
-   - `npx expo start`
-   - Open with Expo Go app or run in emulator.
-
----
-
-## MQTT Broker/Topics
-
-Uses public [HiveMQ broker](https://broker.hivemq.com).
-- Temp: `home/esp32/temp`
 - Humidity: `home/esp32/hum`
 - BPM: `home/esp32/bpm`
 - LED control: `home/esp32/led`
